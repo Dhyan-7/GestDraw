@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GestDraw — Gesture-Based Doodler</title>
+  <meta name="description" content="Draw in the air with hand gestures. GestDraw is a gesture-based doodling experience powered by MediaPipe hand tracking." />
+  <meta name="author" content="DHYAN A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" />
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loader-content">
+      <svg class="loader-logo" width="260" height="60" viewBox="0 0 260 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="white" font-family="Outfit, sans-serif" font-size="36" font-weight="600" letter-spacing="-1">
+          GestDraw
+        </text>
+      </svg>
+      <div class="loader-subtitle">INITIALIZING HAND TRACKING...</div>
+      <div class="loader-bar">
+        <div class="loader-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="hidden">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="camera-canvas"></canvas>
+    <canvas id="drawing-canvas"></canvas>
+    <canvas id="ui-canvas"></canvas>
+
+    <!-- Camera Mode Indicator -->
+    <div id="camera-mode-indicator">
+      <span id="camera-mode-text">Camera ON</span>
+    </div>
+
+    <!-- Gesture HUD -->
+    <div id="gesture-hud">
+      <span id="gesture-icon">🖐️</span>
+      <span id="gesture-label">READY</span>
+    </div>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <!-- Colors -->
+      <div class="toolbar-section">
+        <span class="toolbar-label">Colors</span>
+        <div id="color-palette">
+          <button class="color-swatch active" data-color="#00f0ff" style="--swatch-color: #00f0ff;" aria-label="Cyan"></button>
+          <button class="color-swatch" data-color="#ff00e5" style="--swatch-color: #ff00e5;" aria-label="Magenta"></button>
+          <button class="color-swatch" data-color="#39ff14" style="--swatch-color: #39ff14;" aria-label="Lime"></button>
+          <button class="color-swatch" data-color="#4d6dff" style="--swatch-color: #4d6dff;" aria-label="Blue"></button>
+          <button class="color-swatch" data-color="#ff2d6b" style="--swatch-color: #ff2d6b;" aria-label="Pink"></button>
+          <button class="color-swatch" data-color="#ffd700" style="--swatch-color: #ffd700;" aria-label="Gold"></button>
+          <button class="color-swatch" data-color="#b400ff" style="--swatch-color: #b400ff;" aria-label="Purple"></button>
+          <button class="color-swatch" data-color="#ffffff" style="--swatch-color: #ffffff;" aria-label="White"></button>
+        </div>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Thickness -->
+      <div class="toolbar-section">
+        <span class="toolbar-label">Thickness</span>
+        <input type="range" id="thickness-slider" min="1" max="20" value="6" />
+        <span class="slider-value" id="thickness-value">6px</span>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Glow -->
+      <div class="toolbar-section">
+        <span class="toolbar-label">Glow</span>
+        <input type="range" id="glow-slider" min="0" max="100" value="60" />
+        <span class="slider-value" id="glow-value">60%</span>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Actions -->
+      <div class="toolbar-actions">
+        <!-- Undo -->
+        <button class="toolbar-btn" id="btn-undo" title="Undo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+        </button>
+        <!-- Clear -->
+        <button class="toolbar-btn" id="btn-clear" title="Clear All">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        <!-- Camera Toggle -->
+        <button class="toolbar-btn active" id="btn-camera-toggle" title="Toggle Camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <circle cx="12" cy="12" r="8"></circle>
+            <line x1="12" y1="1" x2="12" y2="4"></line>
+            <line x1="12" y1="20" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line>
+            <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="4" y2="12"></line>
+            <line x1="20" y1="12" x2="23" y2="12"></line>
+          </svg>
+        </button>
+        <!-- Save -->
+        <button class="toolbar-btn" id="btn-save" title="Save Drawing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal">
+      <div class="onboarding-content">
+        <svg class="onboarding-logo" width="220" height="50" viewBox="0 0 220 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="white" font-family="Outfit, sans-serif" font-size="28" font-weight="600" letter-spacing="-0.5">
+            GestDraw
+          </text>
+        </svg>
+        <h2 class="onboarding-title">How to Play</h2>
+        <div class="onboarding-grid">
+          <div class="onboarding-item">
+            <div class="onboarding-icon">☝️</div>
+            <div class="onboarding-text">
+              <strong>Draw</strong>
+              <span>Point your index finger</span>
+            </div>
+          </div>
+          <div class="onboarding-item">
+            <div class="onboarding-icon">✋</div>
+            <div class="onboarding-text">
+              <strong>Erase</strong>
+              <span>Sweep an open palm</span>
+            </div>
+          </div>
+          <div class="onboarding-item">
+            <div class="onboarding-icon">🤏</div>
+            <div class="onboarding-text">
+              <strong>Move</strong>
+              <span>Pinch to grab &amp; drag</span>
+            </div>
+          </div>
+          <div class="onboarding-item">
+            <div class="onboarding-icon">✊</div>
+            <div class="onboarding-text">
+              <strong>Idle</strong>
+              <span>Close your fist</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-primary" id="btn-start">Let's Go!</button>
+      </div>
+    </div>
+
+    <!-- Developer Credit -->
+    <div id="dev-credit">
+      Built by <a href="https://dhyan.world" target="_blank" rel="noopener noreferrer">DHYAN A</a>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
